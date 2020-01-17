@@ -23,7 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.UnicastProcessor;
@@ -32,17 +32,17 @@ import org.springframework.core.ResolvableType;
 import org.springframework.core.codec.StringDecoder;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.buffer.AbstractLeakCheckingTestCase;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
+import org.springframework.core.testfixture.io.buffer.AbstractLeakCheckingTests;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.http.codec.ClientCodecConfigurer;
-import org.springframework.mock.http.server.reactive.test.MockServerHttpRequest;
-import org.springframework.mock.http.server.reactive.test.MockServerHttpResponse;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.testfixture.http.server.reactive.MockServerHttpRequest;
+import org.springframework.web.testfixture.http.server.reactive.MockServerHttpResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
@@ -52,7 +52,7 @@ import static org.mockito.Mockito.mock;
  * @author Sebastien Deleuze
  * @author Rossen Stoyanchev
  */
-public class MultipartHttpMessageWriterTests extends AbstractLeakCheckingTestCase {
+public class MultipartHttpMessageWriterTests extends AbstractLeakCheckingTests {
 
 	private final MultipartHttpMessageWriter writer =
 			new MultipartHttpMessageWriter(ClientCodecConfigurer.create().getWriters());
@@ -93,8 +93,9 @@ public class MultipartHttpMessageWriterTests extends AbstractLeakCheckingTestCas
 				this.bufferFactory.wrap("Bb".getBytes(StandardCharsets.UTF_8)),
 				this.bufferFactory.wrap("Cc".getBytes(StandardCharsets.UTF_8))
 		);
-		Part mockPart = mock(Part.class);
+		FilePart mockPart = mock(FilePart.class);
 		given(mockPart.content()).willReturn(bufferPublisher);
+		given(mockPart.filename()).willReturn("file.txt");
 
 		MultipartBodyBuilder bodyBuilder = new MultipartBodyBuilder();
 		bodyBuilder.part("name 1", "value 1");
@@ -104,7 +105,7 @@ public class MultipartHttpMessageWriterTests extends AbstractLeakCheckingTestCas
 		bodyBuilder.part("utf8", utf8);
 		bodyBuilder.part("json", new Foo("bar"), MediaType.APPLICATION_JSON);
 		bodyBuilder.asyncPart("publisher", Flux.just("foo", "bar", "baz"), String.class);
-		bodyBuilder.asyncPart("partPublisher", Mono.just(mockPart), Part.class);
+		bodyBuilder.part("filePublisher", mockPart);
 		Mono<MultiValueMap<String, HttpEntity<?>>> result = Mono.just(bodyBuilder.build());
 
 		Map<String, Object> hints = Collections.emptyMap();
@@ -159,8 +160,9 @@ public class MultipartHttpMessageWriterTests extends AbstractLeakCheckingTestCas
 		value = decodeToString(part);
 		assertThat(value).isEqualTo("foobarbaz");
 
-		part = requestParts.getFirst("partPublisher");
-		assertThat(part.name()).isEqualTo("partPublisher");
+		part = requestParts.getFirst("filePublisher");
+		assertThat(part.name()).isEqualTo("filePublisher");
+		assertThat(((FilePart) part).filename()).isEqualTo("file.txt");
 		value = decodeToString(part);
 		assertThat(value).isEqualTo("AaBbCc");
 	}

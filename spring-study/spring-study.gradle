@@ -9,7 +9,10 @@ dependencyManagement {
 }
 
 dependencies {
-	compile(project(":spring-core"))
+	optional(project(":spring-core"))
+	optional(project(":spring-core-coroutines"))
+	optional(project(":spring-instrument"))
+	optional(project(":spring-messaging"))
 	optional(project(":spring-aop"))
 	optional(project(":spring-beans"))
 	optional(project(":spring-context"))
@@ -75,7 +78,7 @@ dependencies {
 	testCompile("org.apache.httpcomponents:httpclient:4.5.8") {
 		exclude group: "commons-logging", module: "commons-logging"
 	}
-	testCompile("io.projectreactor.netty:reactor-netty")
+	optional("io.projectreactor.netty:reactor-netty")
 	testCompile("de.bechte.junit:junit-hierarchicalcontextrunner:4.12.1")
 	// Pull in the latest JUnit 5 Launcher API and the Vintage engine as well
 	// so that we can run JUnit 4 tests in IntelliJ IDEA.

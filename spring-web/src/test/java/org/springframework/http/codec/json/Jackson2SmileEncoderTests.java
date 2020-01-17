@@ -23,18 +23,18 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import org.springframework.core.ResolvableType;
-import org.springframework.core.codec.AbstractEncoderTestCase;
 import org.springframework.core.io.buffer.DataBuffer;
-import org.springframework.core.io.buffer.support.DataBufferTestUtils;
-import org.springframework.http.codec.Pojo;
+import org.springframework.core.testfixture.codec.AbstractEncoderTests;
+import org.springframework.core.testfixture.io.buffer.DataBufferTestUtils;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.util.MimeType;
+import org.springframework.web.testfixture.xml.Pojo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.core.io.buffer.DataBufferUtils.release;
@@ -45,7 +45,7 @@ import static org.springframework.http.MediaType.APPLICATION_XML;
  *
  * @author Sebastien Deleuze
  */
-public class Jackson2SmileEncoderTests extends AbstractEncoderTestCase<Jackson2SmileEncoder> {
+public class Jackson2SmileEncoderTests extends AbstractEncoderTests<Jackson2SmileEncoder> {
 
 	private final static MimeType SMILE_MIME_TYPE = new MimeType("application", "x-jackson-smile");
 	private final static MimeType STREAM_SMILE_MIME_TYPE = new MimeType("application", "stream+x-jackson-smile");

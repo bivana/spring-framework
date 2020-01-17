@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -176,6 +177,9 @@ public abstract class AbstractMessageConverterMethodProcessor extends AbstractMe
 	 * @throws IOException thrown in case of I/O errors
 	 * @throws HttpMediaTypeNotAcceptableException thrown when the conditions indicated
 	 * by the {@code Accept} header on the request cannot be met by the message converters
+	 * @throws HttpMessageNotWritableException thrown if a given message cannot
+	 * be written by a converter, or if the content-type chosen by the server
+	 * has no compatible converter.
 	 */
 	@SuppressWarnings({"rawtypes", "unchecked"})
 	protected <T> void writeWithMessageConverters(@Nullable T value, MethodParameter returnType,
@@ -218,7 +222,8 @@ public abstract class AbstractMessageConverterMethodProcessor extends AbstractMe
 
 		MediaType selectedMediaType = null;
 		MediaType contentType = outputMessage.getHeaders().getContentType();
-		if (contentType != null && contentType.isConcrete()) {
+		boolean isContentTypePreset = contentType != null && contentType.isConcrete();
+		if (isContentTypePreset) {
 			if (logger.isDebugEnabled()) {
 				logger.debug("Found 'Content-Type:" + contentType + "' in response");
 			}
@@ -304,6 +309,14 @@ public abstract class AbstractMessageConverterMethodProcessor extends AbstractMe
 		}
 
 		if (body != null) {
+			Set<MediaType> producibleMediaTypes =
+					(Set<MediaType>) inputMessage.getServletRequest()
+							.getAttribute(HandlerMapping.PRODUCIBLE_MEDIA_TYPES_ATTRIBUTE);
+
+			if (isContentTypePreset || !CollectionUtils.isEmpty(producibleMediaTypes)) {
+				throw new HttpMessageNotWritableException(
+						"No converter for [" + valueType + "] with preset Content-Type '" + contentType + "'");
+			}
 			throw new HttpMediaTypeNotAcceptableException(this.allSupportedMediaTypes);
 		}
 	}
