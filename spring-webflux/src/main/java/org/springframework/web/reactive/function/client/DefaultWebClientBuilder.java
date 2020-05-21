@@ -25,6 +25,7 @@ import java.util.function.Consumer;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.reactive.ClientHttpConnector;
+import org.springframework.http.client.reactive.HttpComponentsClientHttpConnector;
 import org.springframework.http.client.reactive.JettyClientHttpConnector;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.http.codec.ClientCodecConfigurer;
@@ -50,10 +51,14 @@ final class DefaultWebClientBuilder implements WebClient.Builder {
 
 	private static final boolean jettyClientPresent;
 
+	private static final boolean httpComponentsClientPresent;
+
 	static {
 		ClassLoader loader = DefaultWebClientBuilder.class.getClassLoader();
 		reactorClientPresent = ClassUtils.isPresent("reactor.netty.http.client.HttpClient", loader);
 		jettyClientPresent = ClassUtils.isPresent("org.eclipse.jetty.client.HttpClient", loader);
+		httpComponentsClientPresent = ClassUtils.isPresent("org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient", loader)
+				&& ClassUtils.isPresent("org.apache.hc.core5.reactive.ReactiveDataConsumer", loader);
 	}
 
 
@@ -260,8 +265,8 @@ final class DefaultWebClientBuilder implements WebClient.Builder {
 				.map(filter -> filter.apply(exchange))
 				.orElse(exchange) : exchange);
 		return new DefaultWebClient(filteredExchange, initUriBuilderFactory(),
-				this.defaultHeaders != null ? unmodifiableCopy(this.defaultHeaders) : null,
-				this.defaultCookies != null ? unmodifiableCopy(this.defaultCookies) : null,
+				this.defaultHeaders != null ? HttpHeaders.readOnlyHttpHeaders(this.defaultHeaders) : null,
+				this.defaultCookies != null ? HttpHeaders.readOnlyHttpHeaders(this.defaultCookies) : null,
 				this.defaultRequest, new DefaultWebClientBuilder(this));
 	}
 
@@ -274,6 +279,9 @@ final class DefaultWebClientBuilder implements WebClient.Builder {
 		}
 		else if (jettyClientPresent) {
 			return new JettyClientHttpConnector();
+		}
+		else if (httpComponentsClientPresent) {
+			return new HttpComponentsClientHttpConnector();
 		}
 		throw new IllegalStateException("No suitable default ClientHttpConnector found");
 	}
@@ -298,10 +306,6 @@ final class DefaultWebClientBuilder implements WebClient.Builder {
 				new DefaultUriBuilderFactory(this.baseUrl) : new DefaultUriBuilderFactory();
 		factory.setDefaultUriVariables(this.defaultUriVariables);
 		return factory;
-	}
-
-	private static HttpHeaders unmodifiableCopy(HttpHeaders headers) {
-		return HttpHeaders.readOnlyHttpHeaders(headers);
 	}
 
 	private static <K, V> MultiValueMap<K, V> unmodifiableCopy(MultiValueMap<K, V> map) {

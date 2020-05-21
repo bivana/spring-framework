@@ -75,6 +75,9 @@ public abstract class AbstractServerHttpResponse implements ServerHttpResponse {
 
 	private final List<Supplier<? extends Mono<Void>>> commitActions = new ArrayList<>(4);
 
+	@Nullable
+	private HttpHeaders readOnlyHeaders;
+
 
 	public AbstractServerHttpResponse(DataBufferFactory dataBufferFactory) {
 		this(dataBufferFactory, new HttpHeaders());
@@ -111,29 +114,60 @@ public abstract class AbstractServerHttpResponse implements ServerHttpResponse {
 		return (this.statusCode != null ? HttpStatus.resolve(this.statusCode) : null);
 	}
 
+	@Override
+	public boolean setRawStatusCode(@Nullable Integer statusCode) {
+		if (this.state.get() == State.COMMITTED) {
+			return false;
+		}
+		else {
+			this.statusCode = statusCode;
+			return true;
+		}
+	}
+
+	@Override
+	@Nullable
+	public Integer getRawStatusCode() {
+		return this.statusCode;
+	}
+
 	/**
 	 * Set the HTTP status code of the response.
 	 * @param statusCode the HTTP status as an integer value
 	 * @since 5.0.1
+	 * @deprecated as of 5.2.4 in favor of {@link ServerHttpResponse#setRawStatusCode(Integer)}.
 	 */
+	@Deprecated
 	public void setStatusCodeValue(@Nullable Integer statusCode) {
-		this.statusCode = statusCode;
+		if (this.state.get() != State.COMMITTED) {
+			this.statusCode = statusCode;
+		}
 	}
 
 	/**
 	 * Return the HTTP status code of the response.
 	 * @return the HTTP status as an integer value
 	 * @since 5.0.1
+	 * @deprecated as of 5.2.4 in favor of {@link ServerHttpResponse#getRawStatusCode()}.
 	 */
 	@Nullable
+	@Deprecated
 	public Integer getStatusCodeValue() {
 		return this.statusCode;
 	}
 
 	@Override
 	public HttpHeaders getHeaders() {
-		return (this.state.get() == State.COMMITTED ?
-				HttpHeaders.readOnlyHttpHeaders(this.headers) : this.headers);
+		if (this.readOnlyHeaders != null) {
+			return this.readOnlyHeaders;
+		}
+		else if (this.state.get() == State.COMMITTED) {
+			this.readOnlyHeaders = HttpHeaders.readOnlyHttpHeaders(this.headers);
+			return this.readOnlyHeaders;
+		}
+		else {
+			return this.headers;
+		}
 	}
 
 	@Override

@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -138,20 +138,22 @@ public class ProxyFactoryBeanTests {
 	private void testDoubleTargetSourceIsRejected(String name) {
 		DefaultListableBeanFactory bf = new DefaultListableBeanFactory();
 		new XmlBeanDefinitionReader(bf).loadBeanDefinitions(new ClassPathResource(DBL_TARGETSOURCE_CONTEXT, CLASS));
-		assertThatExceptionOfType(BeanCreationException.class).as("Should not allow TargetSource to be specified in interceptorNames as well as targetSource property").isThrownBy(() ->
-				bf.getBean(name))
-			.withCauseInstanceOf(AopConfigException.class)
-			.satisfies(ex -> assertThat(ex.getCause().getMessage()).contains("TargetSource"));
+		assertThatExceptionOfType(BeanCreationException.class).as("Should not allow TargetSource to be specified in interceptorNames as well as targetSource property")
+			.isThrownBy(() -> bf.getBean(name))
+			.havingCause()
+			.isInstanceOf(AopConfigException.class)
+			.withMessageContaining("TargetSource");
 	}
 
 	@Test
 	public void testTargetSourceNotAtEndOfInterceptorNamesIsRejected() {
 		DefaultListableBeanFactory bf = new DefaultListableBeanFactory();
 		new XmlBeanDefinitionReader(bf).loadBeanDefinitions(new ClassPathResource(NOTLAST_TARGETSOURCE_CONTEXT, CLASS));
-		assertThatExceptionOfType(BeanCreationException.class).as("TargetSource or non-advised object must be last in interceptorNames").isThrownBy(() ->
-				bf.getBean("targetSourceNotLast"))
-			.withCauseInstanceOf(AopConfigException.class)
-			.satisfies(ex -> assertThat(ex.getCause().getMessage()).contains("interceptorNames"));
+		assertThatExceptionOfType(BeanCreationException.class).as("TargetSource or non-advised object must be last in interceptorNames")
+			.isThrownBy(() -> bf.getBean("targetSourceNotLast"))
+			.havingCause()
+			.isInstanceOf(AopConfigException.class)
+			.withMessageContaining("interceptorNames");
 	}
 
 	@Test
@@ -311,9 +313,9 @@ public class ProxyFactoryBeanTests {
 		assertThat(config.getAdvisors().length).as("Have correct advisor count").isEqualTo(2);
 
 		ITestBean tb1 = (ITestBean) factory.getBean("test1");
-		assertThatExceptionOfType(Exception.class).isThrownBy(
-				tb1::toString)
-			.satisfies(thrown -> assertThat(thrown).isSameAs(ex));
+		assertThatExceptionOfType(Exception.class)
+			.isThrownBy(tb1::toString)
+			.isSameAs(ex);
 	}
 
 	/**
@@ -709,7 +711,7 @@ public class ProxyFactoryBeanTests {
 		@Override
 		public Object invoke(MethodInvocation mi) throws Throwable {
 			if (mi.getMethod().getDeclaringClass().equals(AddedGlobalInterface.class)) {
-				return new Integer(-1);
+				return -1;
 			}
 			return mi.proceed();
 		}

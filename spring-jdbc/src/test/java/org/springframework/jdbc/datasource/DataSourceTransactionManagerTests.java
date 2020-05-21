@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,6 +63,7 @@ import static org.springframework.core.testfixture.TestGroup.PERFORMANCE;
 /**
  * @author Juergen Hoeller
  * @since 04.07.2003
+ * @see org.springframework.jdbc.support.JdbcTransactionManagerTests
  */
 public class DataSourceTransactionManagerTests  {
 
@@ -284,8 +285,7 @@ public class DataSourceTransactionManagerTests  {
 		boolean condition1 = !TransactionSynchronizationManager.isSynchronizationActive();
 		assertThat(condition1).as("Synchronization not active").isTrue();
 
-		ConnectionHolder conHolder = new ConnectionHolder(con);
-		conHolder.setTransactionActive(true);
+		ConnectionHolder conHolder = new ConnectionHolder(con, true);
 		TransactionSynchronizationManager.bindResource(ds, conHolder);
 		final RuntimeException ex = new RuntimeException("Application exception");
 		try {
